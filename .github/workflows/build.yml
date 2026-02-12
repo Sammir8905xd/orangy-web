@@ -21,7 +21,6 @@ jobs:
         host: 'windows'
         target: 'desktop'
         arch: 'win64_msvc2019_64'
-        # Añadimos los módulos que pedía el error
         modules: 'qtwebengine qtwebchannel qtpositioning'
 
     - name: Set up MSVC
@@ -30,20 +29,22 @@ jobs:
     - name: Generate Project File
       shell: pwsh
       run: |
-        # Creamos el archivo .pro con las dependencias correctas
+        # Creamos el archivo .pro optimizado
+        # Eliminamos la necesidad de incluir manualmente el .moc al final del CPP
         $pro = @"
         QT += core gui widgets webenginewidgets webchannel
         TEMPLATE = app
         TARGET = OranGyBrowser
         SOURCES += Orangy.cpp
         CONFIG += c++17
+        # Esto le dice a Qt que maneje automáticamente los archivos MOC
+        CONFIG += qt
         "@
         $pro | Out-File -FilePath OranGy.pro -Encoding utf8
 
     - name: Build Application
       shell: pwsh
       run: |
-        # Usamos -spec win32-msvc para asegurar compatibilidad
         qmake OranGy.pro -spec win32-msvc
         nmake /f Makefile.Release
 
@@ -51,9 +52,7 @@ jobs:
       shell: pwsh
       run: |
         mkdir dist
-        # Buscamos el ejecutable en la carpeta release
         copy release\OranGyBrowser.exe dist\
-        # windeployqt copia todas las DLLs necesarias de Qt
         windeployqt --webengine --no-translations dist\OranGyBrowser.exe
 
     - name: Upload Artifact
