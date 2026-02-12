@@ -21,8 +21,8 @@ jobs:
         host: 'windows'
         target: 'desktop'
         arch: 'win64_msvc2019_64'
-        # Necesitamos WebEngine para el navegador
-        modules: 'qtwebengine'
+        # Añadimos los módulos que pedía el error
+        modules: 'qtwebengine qtwebchannel qtpositioning'
 
     - name: Set up MSVC
       uses: ilammy/msvc-dev-cmd@v1
@@ -30,22 +30,31 @@ jobs:
     - name: Generate Project File
       shell: pwsh
       run: |
-        echo "QT += core gui widgets webenginewidgets" > OranGy.pro
-        echo "SOURCES += Orangy.cpp" >> OranGy.pro
-        echo "TARGET = OranGyBrowser" >> OranGy.pro
+        # Creamos el archivo .pro con las dependencias correctas
+        $pro = @"
+        QT += core gui widgets webenginewidgets webchannel
+        TEMPLATE = app
+        TARGET = OranGyBrowser
+        SOURCES += Orangy.cpp
+        CONFIG += c++17
+        "@
+        $pro | Out-File -FilePath OranGy.pro -Encoding utf8
 
     - name: Build Application
       shell: pwsh
       run: |
-        qmake OranGy.pro
-        nmake
+        # Usamos -spec win32-msvc para asegurar compatibilidad
+        qmake OranGy.pro -spec win32-msvc
+        nmake /f Makefile.Release
 
     - name: Package Release
       shell: pwsh
       run: |
         mkdir dist
+        # Buscamos el ejecutable en la carpeta release
         copy release\OranGyBrowser.exe dist\
-        windeployqt --webengine dist\OranGyBrowser.exe
+        # windeployqt copia todas las DLLs necesarias de Qt
+        windeployqt --webengine --no-translations dist\OranGyBrowser.exe
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
