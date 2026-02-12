@@ -1,0 +1,54 @@
+name: Build OranGy Browser
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '6.5.0'
+        host: 'windows'
+        target: 'desktop'
+        arch: 'win64_msvc2019_64'
+        # Necesitamos WebEngine para el navegador
+        modules: 'qtwebengine'
+
+    - name: Set up MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Generate Project File
+      shell: pwsh
+      run: |
+        echo "QT += core gui widgets webenginewidgets" > OranGy.pro
+        echo "SOURCES += Orangy.cpp" >> OranGy.pro
+        echo "TARGET = OranGyBrowser" >> OranGy.pro
+
+    - name: Build Application
+      shell: pwsh
+      run: |
+        qmake OranGy.pro
+        nmake
+
+    - name: Package Release
+      shell: pwsh
+      run: |
+        mkdir dist
+        copy release\OranGyBrowser.exe dist\
+        windeployqt --webengine dist\OranGyBrowser.exe
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: OranGyBrowser-Windows
+        path: dist/
