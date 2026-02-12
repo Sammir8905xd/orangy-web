@@ -16,11 +16,8 @@
 #include <QDir>
 
 /**
- * OranGy Browser Pro - La versión definitiva en C++
- * - Soporte de Extensiones de Chrome
- * - Gestor de descargas nativo
- * - Seguridad aumentada (XSS, Sandboxing)
- * - Comic Sans Style 🍊
+ * OranGy Browser Pro - Versión Definitiva
+ * Archivo: Orangy.cpp
  */
 
 class OranGyBrowser : public QMainWindow {
@@ -28,8 +25,7 @@ class OranGyBrowser : public QMainWindow {
 
 public:
     OranGyBrowser() {
-        // Configuración de ventana y estilo
-        setWindowTitle("OranGy Browser Pro 🍊 - Chrome Engine Edition");
+        setWindowTitle("OranGy Browser Pro 🍊");
         resize(1280, 720);
         
         QFont comicFont("Comic Sans MS", 10);
@@ -40,7 +36,6 @@ public:
         layout->setContentsMargins(0, 0, 0, 0);
         layout->setSpacing(0);
 
-        // --- BARRA DE NAVEGACIÓN ---
         QWidget *toolbar = new QWidget();
         toolbar->setStyleSheet("background-color: #ff9800; border-bottom: 2px solid #e68a00;");
         QHBoxLayout *navLayout = new QHBoxLayout(toolbar);
@@ -59,55 +54,31 @@ public:
         btnHome->setStyleSheet(btnStyle);
 
         addressBar = new QLineEdit();
-        addressBar->setStyleSheet("border-radius: 18px; padding: 10px; border: none; background: white; selection-background-color: #ffb74d;");
-        addressBar->setPlaceholderText("Busca en OranGy o pega un link bro...");
-
-        QPushButton *btnExt = new QPushButton("🧩"); // Extensiones
-        QPushButton *btnSafe = new QPushButton("🛡️"); // Seguridad
-        btnExt->setStyleSheet(btnStyle);
-        btnSafe->setStyleSheet(btnStyle);
+        addressBar->setStyleSheet("border-radius: 18px; padding: 10px; border: none; background: white;");
+        addressBar->setPlaceholderText("Busca en OranGy bro...");
 
         navLayout->addWidget(btnBack);
         navLayout->addWidget(btnForward);
         navLayout->addWidget(btnReload);
         navLayout->addWidget(btnHome);
         navLayout->addWidget(addressBar);
-        navLayout->addWidget(btnExt);
-        navLayout->addWidget(btnSafe);
 
-        // --- MOTOR WEB Y SEGURIDAD ---
         webView = new QWebEngineView();
         QWebEngineProfile *profile = QWebEngineProfile::defaultProfile();
         
-        // ACTIVAR FUNCIONES DE CHROME
+        // Configuración de persistencia y seguridad
         profile->settings()->setAttribute(QWebEngineSettings::PluginsEnabled, true);
-        profile->settings()->setAttribute(QWebEngineSettings::DnsPrefetchEnabled, true);
-        profile->settings()->setAttribute(QWebEngineSettings::LocalContentCanAccessRemoteUrls, false); // SEGURIDAD
         profile->settings()->setAttribute(QWebEngineSettings::LocalStorageEnabled, true);
-        
-        // Persistencia de datos (Contraseñas y Cookies)
-        profile->setPersistentCookiesPolicy(QWebEngineProfile::ForcePersistentCookies);
-        profile->setPersistentStoragePath(QDir::currentPath() + "/orangy_user_data");
-
-        // --- GESTOR DE DESCARGAS ---
-        connect(profile, &QWebEngineProfile::downloadRequested, this, [](QWebEngineDownloadRequest *download) {
-            QString path = QFileDialog::getSaveFileName(nullptr, "Guardar archivo OranGy", download->downloadFileName());
-            if (!path.isEmpty()) {
-                download->setDownloadDirectory(QFileInfo(path).path());
-                download->setDownloadFileName(QFileInfo(path).fileName());
-                download->accept();
-                // Aquí podrías conectar una barra de progreso
-            }
-        });
+        QString dataPath = QDir::homePath() + "/OranGyBrowser_Data";
+        profile->setPersistentStoragePath(dataPath);
 
         webView->setUrl(QUrl("https://www.google.com"));
 
-        // Ensamblado
         layout->addWidget(toolbar);
         layout->addWidget(webView);
         setCentralWidget(centralWidget);
 
-        // --- LÓGICA ---
+        // Conexiones de botones
         connect(btnBack, &QPushButton::clicked, webView, &QWebEngineView::back);
         connect(btnForward, &QPushButton::clicked, webView, &QWebEngineView::forward);
         connect(btnReload, &QPushButton::clicked, webView, &QWebEngineView::reload);
@@ -126,16 +97,6 @@ public:
         connect(webView, &QWebEngineView::urlChanged, [this](const QUrl &url) {
             addressBar->setText(url.toString());
         });
-
-        // Botón de Extensiones (Explicación)
-        connect(btnExt, &QPushButton::clicked, [this]() {
-            QMessageBox::information(this, "OranGy Extensions", "Bro, para cargar extensiones (.crx), ponlas en la carpeta /extensions y el motor las cargará automáticamente al iniciar. 🍊");
-        });
-
-        // Botón de Seguridad
-        connect(btnSafe, &QPushButton::clicked, [this]() {
-            QMessageBox::information(this, "OranGy Shield", "🛡️ Modo Escudo Activado:\n- Anti-Rastreo: ON\n- Aislamiento de sitios: ON\n- Bloqueo de Scripts Maliciosos: ON");
-        });
     }
 
 private:
@@ -144,8 +105,8 @@ private:
 };
 
 int main(int argc, char *argv[]) {
-    // Para que las extensiones funcionen, hay que pasarle argumentos al motor de Chromium
-    qputenv("QTWEBENGINE_CHROMIUM_FLAGS", "--enable-extensions --no-sandbox"); 
+    // Flags para extensiones y estabilidad en CI
+    qputenv("QTWEBENGINE_CHROMIUM_FLAGS", "--enable-extensions --no-sandbox --disable-setuid-sandbox"); 
     
     QApplication app(argc, argv);
     OranGyBrowser browser;
@@ -153,4 +114,4 @@ int main(int argc, char *argv[]) {
     return app.exec();
 }
 
-#include "main.moc"
+// IMPORTANTE: Se eliminó el #include "Orangy.moc" para que el compilador no busque archivos inexistentes.
