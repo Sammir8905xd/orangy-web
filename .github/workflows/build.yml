@@ -29,16 +29,20 @@ jobs:
     - name: Generate Project File
       shell: pwsh
       run: |
-        # Creamos el archivo .pro optimizado
-        # Eliminamos la necesidad de incluir manualmente el .moc al final del CPP
+        # Creamos el archivo .pro optimizado para procesar el MOC correctamente
         $pro = @"
-        QT += core gui widgets webenginewidgets webchannel
+        QT += core gui widgets webenginewidgets webchannel positioning
         TEMPLATE = app
         TARGET = OranGyBrowser
+        
+        # Truco: Ponemos el .cpp en HEADERS para que el MOC lo escanee
         SOURCES += Orangy.cpp
+        HEADERS += Orangy.cpp
+        
         CONFIG += c++17
-        # Esto le dice a Qt que maneje automáticamente los archivos MOC
         CONFIG += qt
+        # Evita el error de WinMain usando consola para debug
+        CONFIG += console
         "@
         $pro | Out-File -FilePath OranGy.pro -Encoding utf8
 
@@ -46,14 +50,21 @@ jobs:
       shell: pwsh
       run: |
         qmake OranGy.pro -spec win32-msvc
+        # Forzamos la ejecución de MOC antes de nmake
+        nmake /f Makefile.Release clean
         nmake /f Makefile.Release
 
     - name: Package Release
       shell: pwsh
       run: |
         mkdir dist
-        copy release\OranGyBrowser.exe dist\
-        windeployqt --webengine --no-translations dist\OranGyBrowser.exe
+        if (Test-Path "release\OranGyBrowser.exe") {
+            copy release\OranGyBrowser.exe dist\
+            windeployqt --webengine --no-translations dist\OranGyBrowser.exe
+        } else {
+            Write-Error "No se encontró el ejecutable en release\"
+            exit 1
+        }
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
